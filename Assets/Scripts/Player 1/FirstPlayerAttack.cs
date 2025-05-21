@@ -3,6 +3,8 @@ using UnityEngine;
 public class PlayerAttack : MonoBehaviour
 {
     [SerializeField] private float attackCooldown = 1f;  // زمان بین دو حمله
+    [SerializeField] private Transform arrowPoint;
+    [SerializeField] private GameObject[] Arrows;
     private Animator anim;
     private PlayerMovement playerMovement;
     private float cooldownTimer = Mathf.Infinity;
@@ -21,6 +23,11 @@ public class PlayerAttack : MonoBehaviour
             Attack();
         }
 
+        if (Input.GetKeyDown(KeyCode.RightShift) && cooldownTimer > attackCooldown && playerMovement.CanAttack())
+        {
+            Shoot();
+        }
+
         cooldownTimer += Time.deltaTime;
     }
 
@@ -28,5 +35,15 @@ public class PlayerAttack : MonoBehaviour
     {
         anim.SetTrigger("Attack");
         cooldownTimer = 0f;
+
+    }
+
+    private void Shoot()
+    {
+            anim.SetTrigger("Shoot");
+            cooldownTimer = 0f;
+
+            Arrows[0].transform.position = arrowPoint.position;
+            Arrows[0].GetComponent<Projectile>().SetDirection(Mathf.Sign(transform.localScale.x));
     }
 }
