@@ -1,10 +1,16 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerAttack : MonoBehaviour
 {
-    [SerializeField] private float attackCooldown = 1f;  // زمان بین دو حمله
-    [SerializeField] private Transform arrowPoint;
-    [SerializeField] private GameObject[] Arrows;
+    [Header("Attack Settings")]
+    [SerializeField] private float attackCooldown = 1f;       // زمان بین دو حمله نزدیک
+    [SerializeField] private float shootDelay = 0.5f;          // زمان تاخیر بین فشردن کلید و پرتاب تیر
+
+    [Header("Arrow Settings")]
+    [SerializeField] private Transform arrowPoint;             // محل شلیک تیر
+    [SerializeField] private GameObject[] Arrows;              // آرایه‌ای از تیرها (Object Pool)
+
     private Animator anim;
     private PlayerMovement playerMovement;
     private float cooldownTimer = Mathf.Infinity;
@@ -17,33 +23,50 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
-        // اگر کلید Shift چپ زده شد، cooldown تموم شده و پلیر اجازه‌ی حمله داره
+        cooldownTimer += Time.deltaTime;
+
+        // حمله نزدیک (با شمشیر یا مشت)
         if (Input.GetKeyDown(KeyCode.LeftShift) && cooldownTimer > attackCooldown && playerMovement.CanAttack())
         {
             Attack();
         }
 
+        // حمله دور (با تیر) همراه با delay
         if (Input.GetKeyDown(KeyCode.RightShift) && cooldownTimer > attackCooldown && playerMovement.CanAttack())
         {
-            Shoot();
+            StartCoroutine(ShootWithDelay());
         }
-
-        cooldownTimer += Time.deltaTime;
     }
 
     private void Attack()
     {
         anim.SetTrigger("Attack");
         cooldownTimer = 0f;
-
     }
 
-    private void Shoot()
+    private IEnumerator ShootWithDelay()
     {
-            anim.SetTrigger("Shoot");
-            cooldownTimer = 0f;
+        anim.SetTrigger("Shoot");
+        cooldownTimer = 0f;
 
-            Arrows[0].transform.position = arrowPoint.position;
-            Arrows[0].GetComponent<Projectile>().SetDirection(Mathf.Sign(transform.localScale.x));
+        yield return new WaitForSeconds(shootDelay); // تاخیر قابل تنظیم
+
+        int arrowIndex = FindAvailableArrow();
+
+        if (arrowIndex == -1) yield break; // اگه تیر آزاد نداریم، خارج شو
+
+        Arrows[arrowIndex].transform.position = arrowPoint.position;
+        Arrows[arrowIndex].GetComponent<Projectile>().SetDirection(Mathf.Sign(transform.localScale.x));
+    }
+
+    // پیدا کردن اولین تیر غیرفعال
+    private int FindAvailableArrow()
+    {
+        for (int i = 0; i < Arrows.Length; i++)
+        {
+            if (!Arrows[i].activeInHierarchy)
+                return i;
+        }
+        return -1; // پیدا نشد
     }
 }
